@@ -1,48 +1,118 @@
-import React from 'react';
-import { View, Text, StyleSheet} from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, Button } from 'react-native';
 import PropTypes from 'prop-types';
 import RandomNumber from './RandomNumber';
+import shuffle from 'lodash.shuffle';
 
 
-class Game extends React.Component {
 
-  static propTypes = {
-    randomNumberCount: PropTypes.number.isRequired
-  };
+const Game = ({randomNumberCount, onPlayAgain, timeToSolve, onBackToMenu}) => {
+
+  const [selectedNumbers, setSelectedNumbers] = useState([]);
+  const [remainingSeconds, setRemainingSeconds] = useState(timeToSolve);
+  const [gameStatus, setGameStatus] = useState('PLAYING');
+
+  const intervalId = useRef(null);
+
+
+  const randomNumbers = useRef(Array.from({ length: randomNumberCount })
+    .map(() => 1 + Math.floor(10 * Math.random())));
+
+  const target = useRef(randomNumbers.current.slice(0, randomNumberCount - 2)
+    .reduce((acc, n) => acc + n, 0));
+    
+  const shuffledRandomNumbers = useRef(shuffle(randomNumbers.current));
+
   
-  state = {
-    selectedNumbers: []
+  function caclGameStatus() {
+    const sumSelected = selectedNumbers.reduce((acc, curr) => {
+      return acc + shuffledRandomNumbers.current[curr];
+    }, 0);
+
+
+    if (remainingSeconds === 0 && sumSelected !== target.current) {
+      return 'LOST';
+    }
+
+    if (sumSelected < target.current) {
+      return 'PLAYING';
+    } 
+
+    if (sumSelected === target.current) {
+      return 'WON';
+    }
+
+    return 'LOST';
   }
 
+  useEffect(() => {
+    if(gameStatus !== 'PLAYING') {
+      clearInterval(intervalId.current);
+    }
+  }, [gameStatus]);
 
-  randomNumbers = Array.from({ length: this.props.randomNumberCount })
-    .map(() => 1 + Math.floor(10 * Math.random()));
+  useEffect(() => {
+    if (!remainingSeconds) {
+      return;
+    }
 
-  target = this.randomNumbers.slice(0, this.props.randomNumberCount - 2)
-    .reduce((acc, n) => acc + n, 0);
+    intervalId.current = setInterval(() => {
+      setRemainingSeconds(remainingSeconds - 1);
+    }, 1000);
 
-  isNumberSelected = (numberIndex) => {
-    return this.state.selectedNumbers.indexOf(numberIndex) >= 0;
+    return () => clearInterval(intervalId.current);
+
+  }, [remainingSeconds]);
+
+
+  useEffect(() => {
+    if (remainingSeconds === 0) {
+      setGameStatus(caclGameStatus());
+    }
+  }, [remainingSeconds]);
+
+  useEffect(() => {
+    setGameStatus(caclGameStatus());
+  }, [selectedNumbers]);
+
+
+  function isNumberSelected(numberIndex) {
+    return selectedNumbers.indexOf(numberIndex) >= 0;
   }
 
-  selectNumber = (numberIndex) => {
-    this.setState((prevState) => ({
-      selectedNumbers: [...prevState.selectedNumbers, numberIndex]
-    }));
+  function selectNumber(numberIndex) {
+    setSelectedNumbers([...selectedNumbers, numberIndex]);
   }
-  
-  render() {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.target}>{this.target}</Text>
-        <View style={styles.randomContainer}>
-          {this.randomNumbers.map((rn, index) => <RandomNumber  key={index} id={index} number={rn} isDisabled={this.isNumberSelected(index)} onPress={this.selectNumber}/>)}
-        </View>
-        
+
+  return (
+    <View style={styles.container}>
+      <Text style={[styles.target, styles[`STATUS_${gameStatus}`]]}>{target.current}</Text>
+      <View style={styles.randomContainer}>
+        {
+          shuffledRandomNumbers.current.map((rn, index) => 
+            <RandomNumber  
+              key={index} 
+              id={index} 
+              number={rn} 
+              isDisabled={isNumberSelected(index) || gameStatus !== 'PLAYING'} 
+              onPress={selectNumber}/>)
+        }
+        <Text style={styles.timer}>Time remaining: {remainingSeconds}</Text>
+        {gameStatus !== 'PLAYING' && <Button color='green' title='Play Again' onPress={onPlayAgain} />}
+        <Button title='Back to menu' onPress={onBackToMenu} />
       </View>
-    );
-  }
-}
+    
+    </View>
+  );
+  
+};
+
+Game.propTypes = {
+  randomNumberCount: PropTypes.number.isRequired,
+  onPlayAgain: PropTypes.func.isRequired,
+  timeToSolve: PropTypes.number.isRequired,
+  onBackToMenu: PropTypes.func.isRequired
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -51,7 +121,6 @@ const styles = StyleSheet.create({
   },
   target: {
     fontSize: 50,
-    backgroundColor: '#bbb',
     margin: 50,
     textAlign: 'center'
   },
@@ -60,6 +129,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-around'
+  },
+  STATUS_PLAYING: {
+    backgroundColor: '#bbb'
+  },
+  STATUS_WON: {
+    backgroundColor: 'green'
+  },
+  STATUS_LOST: {
+    backgroundColor: 'red'
+  },
+  timer: {
+    width: '100%',
+    textAlign: 'center',
+    fontSize: 30,
+    marginBottom: 50
   }
 });
 

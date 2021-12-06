@@ -6,9 +6,14 @@ const App = () => {
 
   const [gameId, setGameId] = useState(0);
   const [gameLevel, setGameLevel] = useState(null);
+  const [scores, setScores] = useState([]);
 
   const backToMenu = () => {
     setGameLevel(null);
+  };
+
+  const onWin = (score) => {
+    setScores([...scores, score]);
   };
 
   if (!gameLevel) {
@@ -25,28 +30,34 @@ const App = () => {
         <TouchableOpacity onPress={() => setGameLevel('hard')} style={[styles.appButtonContainer, {backgroundColor: 'red'}]}>
           <Text style={styles.appButtonText}>Hard</Text>
         </TouchableOpacity>
+        { scores.length > 0 ? scores.map(score => <Text style={styles.score} key={Math.random()}>{score.difficulty} - {score.remainingTime} seconds </Text>) : <Text style={styles.score}>No score</Text>}
       </View>
     );
   }
 
   if (gameLevel === 'easy') {
     return (
-      <Game key={gameId} onPlayAgain={() => setGameId(gameId + 1)} randomNumberCount={4} timeToSolve={15} onBackToMenu={backToMenu}/>
+      <Game key={gameId} onWin={onWin} onPlayAgain={() => setGameId(gameId + 1)} randomNumberCount={4} timeToSolve={15} onBackToMenu={backToMenu} difficulty='easy'/>
     );
   }
 
   if (gameLevel === 'medium') {
     return (
-      <Game key={gameId} onPlayAgain={() => setGameId(gameId + 1)} randomNumberCount={6} timeToSolve={10} onBackToMenu={backToMenu}/>
+      <Game key={gameId} onWin={onWin} onPlayAgain={() => setGameId(gameId + 1)} randomNumberCount={6} timeToSolve={10} onBackToMenu={backToMenu} difficulty='medium'/>
     );
   }
 
   return (
-    <Game key={gameId} onPlayAgain={() => setGameId(gameId + 1)} randomNumberCount={8} timeToSolve={6} onBackToMenu={backToMenu}/>
+    <Game key={gameId} onWin={onWin} onPlayAgain={() => setGameId(gameId + 1)} randomNumberCount={8} timeToSolve={6} onBackToMenu={backToMenu} difficulty='hard'/>
   );
 };
 
 const styles = StyleSheet.create({
+  score: {
+    fontSize: 30,
+    width: '100%',
+    textAlign: 'center'
+  },
   title: {
     fontSize: 30,
     fontWeight: 'bold',

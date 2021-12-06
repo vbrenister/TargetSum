@@ -6,7 +6,7 @@ import shuffle from 'lodash.shuffle';
 
 
 
-const Game = ({randomNumberCount, onPlayAgain, timeToSolve, onBackToMenu}) => {
+const Game = ({randomNumberCount, onPlayAgain, timeToSolve, onBackToMenu, onWin, difficulty}) => {
 
   const [selectedNumbers, setSelectedNumbers] = useState([]);
   const [remainingSeconds, setRemainingSeconds] = useState(timeToSolve);
@@ -48,6 +48,10 @@ const Game = ({randomNumberCount, onPlayAgain, timeToSolve, onBackToMenu}) => {
   useEffect(() => {
     if(gameStatus !== 'PLAYING') {
       clearInterval(intervalId.current);
+    }
+
+    if (gameStatus === 'WON') {
+      onWin({difficulty: difficulty, remainingTime: (timeToSolve - remainingSeconds)});
     }
   }, [gameStatus]);
 
@@ -111,7 +115,9 @@ Game.propTypes = {
   randomNumberCount: PropTypes.number.isRequired,
   onPlayAgain: PropTypes.func.isRequired,
   timeToSolve: PropTypes.number.isRequired,
-  onBackToMenu: PropTypes.func.isRequired
+  onBackToMenu: PropTypes.func.isRequired,
+  onWin: PropTypes.func.isRequired,
+  difficulty: PropTypes.string.isRequired
 };
 
 const styles = StyleSheet.create({
